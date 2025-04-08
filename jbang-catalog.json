@@ -1,0 +1,9 @@
+{
+	"catalogs": {},
+	"aliases": {
+	  "camel": {
+		"script-ref": "CamelJBang.java",
+		"description": "Create and run Red Hat Build of Apache Camel routes easily"
+	  }
+	}
+}
