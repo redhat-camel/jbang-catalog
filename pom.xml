@@ -63,6 +63,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <camel-version>4.10.3</camel-version>
         <camel-community-version>4.10.3</camel-community-version>
+        <camel-spring-boot-version>4.10.3</camel-spring-boot-version>
         <camel-kamelets-version>4.10.3</camel-kamelets-version>
     </properties>
 
@@ -77,6 +78,11 @@
                 <groupId>org.apache.camel.kamelets</groupId>
                 <artifactId>camel-kamelets</artifactId>
                 <version>${camel-kamelets-version}</version> 
+            </dependency>
+            <dependency>
+                <groupId>com.redhat.camel.springboot.platform</groupId>
+                <artifactId>camel-spring-boot-bom</artifactId>
+                <version>${camel-spring-boot-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
