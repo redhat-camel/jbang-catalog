@@ -18,10 +18,10 @@
  */
 
 //JAVA 17+
-//REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
-//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.10.3.redhat-00005}@pom
-//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.10.3}
-//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.10.3.redhat-00003}
+//REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/,https://nexus.fuse-qe.eng.rdu2.redhat.com/repository/fuse-all/
+//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.10.3.redhat-00010}@pom
+//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.10.3.redhat-00010}
+//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.10.3.redhat-00007}
 
 package main;
 

@@ -61,9 +61,9 @@
         <!-- unify the encoding for all the modules -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <camel-version>4.10.3</camel-version>
+        <camel-version>4.10.3.redhat-00010</camel-version>
         <camel-community-version>4.10.3</camel-community-version>
-        <camel-kamelets-version>4.10.3</camel-kamelets-version>
+        <camel-kamelets-version>4.10.3.redhat-00007</camel-kamelets-version>
     </properties>
 
     <dependencyManagement>
