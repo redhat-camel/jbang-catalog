@@ -18,7 +18,7 @@
  */
 
 //JAVA 17+
-//REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/,https://nexus.fuse-qe.eng.rdu2.redhat.com/repository/indy-pnc/
+//REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/,https://indy.psi.redhat.com/api/content/maven/group/builds-untested+shared-imports/
 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.10.3.redhat-00010}@pom
 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.10.3.redhat-00010}
 //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.10.3.redhat-00007}
