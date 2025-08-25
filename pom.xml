@@ -23,12 +23,12 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>35</version>
+        <version>35.0.0.redhat-00001</version>
     </parent>
 
     <groupId>com.redhat.camel</groupId>
     <artifactId>jbang-catalog</artifactId>
-    <version>4.10.6-SNAPSHOT</version>
+    <version>4.10.6.redhat-00008</version>
     <packaging>pom</packaging>
 
     <name>Red Hat JBang Catalog</name>
@@ -61,10 +61,10 @@
         <!-- unify the encoding for all the modules -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <camel-version>4.10.6</camel-version>
+        <camel-version>4.10.6.redhat-00008</camel-version>
         <camel-community-version>4.10.6</camel-community-version>
-        <camel-spring-boot-version>4.10.6</camel-spring-boot-version>
-        <camel-kamelets-version>4.10.6</camel-kamelets-version>
+        <camel-spring-boot-version>4.10.6.redhat-00008</camel-spring-boot-version>
+        <camel-kamelets-version>4.10.6.redhat-00007</camel-kamelets-version>
     </properties>
 
     <dependencyManagement>
@@ -87,19 +87,16 @@
         </dependencies>
     </dependencyManagement>
 
+    <build>
+    <pluginManagement />
+  </build>
+
     <!-- Comment out the snapshot repositories as we don't need them now -->
     <repositories>
-        <repository>
-            <id>central</id>
-            <url>https://repo1.maven.org/maven2/</url>
-            <name>Maven Central</name>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
+        
     </repositories>
 
 </project>
+<!--
+Modified by POM Manipulation Extension for Maven 4.21 ( SHA: d4ca79a9 )
+-->
