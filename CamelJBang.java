@@ -19,7 +19,7 @@
 
 //JAVA 17+
 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
-//JAVA_OPTIONS -Dcamel.jbang.quarkusVersion=3.27.1.redhat-00001
+//JAVA_OPTIONS -Dcamel.jbang.quarkusGroupId=com.redhat.quarkus.platform -Dcamel.jbang.quarkusArtifactId=quarkus-bom -Dcamel.jbang.quarkusVersion=3.27.1.redhat-00001
 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.14.2.redhat-00002}@pom
 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.14.2.redhat-00002}
 //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.14.2.redhat-00002}
