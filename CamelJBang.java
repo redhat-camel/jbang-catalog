@@ -19,9 +19,10 @@
 
 //JAVA 17+
 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
-//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.10.6.redhat-00001}@pom
-//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.10.6}
-//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.10.6.redhat-00001}
+//JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.14.2.redhat-00005
+//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.14.2.redhat-00004}@pom
+//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.14.2.redhat-00004}
+//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.14.2.redhat-00004}
 
 package main;
 
