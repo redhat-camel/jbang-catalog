@@ -1,0 +1,23 @@
+= JBang Catalog for Red Hat Build of Apache Camel
+
+* Check the Tooling Guide of
+  https://docs.redhat.com/en/documentation/red_hat_build_of_apache_camel/[Red Hat Build of Apache Camel]
+  product documentation for more information about how to install this catalog and about Camel CLI.
+* Check the JBang documentation for more information about JBang Catalogs:
+** https://www.jbang.dev/documentation/jbang/latest/alias_catalogs.html[Aliases & Catalogs]
+** https://www.jbang.dev/documentation/jbang/latest/app-installation.html#installing-from-aliases[Installing Scripts as Apps from Catalog]
+
+== Branches in this repository
+
+Generally, `.x` branches (such as `4.14.x`) should be preferred for installing the Camel JBang Catalog
+for the corresponding versions of Red Hat Build of Apache Camel.
+Other branches may be used, if it is recommended by the documentation of Red Hat Build of Apache Camel.
+
+== Update policy
+
+The versions of Red Hat Build of Apache Camel for Quarkus in `.x` branches (such as `4.14.x`)
+of the Catalog are updated daily using information from
+https://registry.quarkus.redhat.com/client/platforms
+Therefore, there might be a delay of up to 24 hours after publishing in Quarkus registry
+till the versions in this repository are updated to the newest versions
+or till a new `.x` branch is created.
