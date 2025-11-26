@@ -60,6 +60,7 @@ public class UpdateVersionsTest {
         final String ghRepository = System.getenv("GITHUB_REPOSITORY");
         final String ghToken = System.getenv("GITHUB_TOKEN");
         final String issueId = System.getenv("GITHUB_ISSUE_ID");
+        final String workflowRunUrl = System.getenv("WORKFLOW_RUN_URL");
         try {
 
             final String remoteMavenRepositoryBaseUrl = "https://maven.repository.redhat.com/ga";
@@ -158,11 +159,11 @@ public class UpdateVersionsTest {
                     .then()
                     .statusCode(200);
         } catch (Exception e) {
-            reportFailure(e, ghRepository, issueId, ghToken);
+            reportFailure(e, ghRepository, issueId, workflowRunUrl, ghToken);
         }
     }
 
-    static void reportFailure(Exception e, String ghRepository, String issueId, String ghToken) {
+    static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken) {
 
         final Writer stackTrace = new StringWriter();
         try (PrintWriter pw = new PrintWriter(stackTrace)) {
@@ -180,9 +181,9 @@ public class UpdateVersionsTest {
         }
         final String body = """
                 {
-                    "body" : "`update-versions` failed:\\n\\n```\\n%s\\n```"
+                    "body" : "`update-versions` failed in %s :\\n\\n```\\n%s\\n```"
                 }
-                """.formatted(st);
+                """.formatted(workflowRunUrl, st);
         //log.info("Creating new comment " + body);
         RestAssured.given()
                 .accept("application/vnd.github+json")

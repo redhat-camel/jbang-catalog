@@ -9,6 +9,9 @@ inputs:
   issueId:
     description: "The ID of the GitHub issue where to report issues"
     required: true
+  workflowRunUrl:
+    description: "The URL if the workflow run to show in the issue comment"
+    required: true
 
 runs:
   using: 'composite'
@@ -27,6 +30,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         JBANG_CATALOG_GIT_REPOSITORY: https://github.com/${{ github.repository }}.git
+        WORKFLOW_RUN_URL: ${{ inputs.workflowRunUrl }}
       run: |
         cd .github/actions/update-versions
         ./mvnw clean test -B -ntp

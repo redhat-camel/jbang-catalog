@@ -36,3 +36,4 @@ jobs:
       with:
         token: "${{ secrets.GITHUB_TOKEN }}"
         issueId: '16'
+        workflowRunUrl: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
