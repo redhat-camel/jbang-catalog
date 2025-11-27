@@ -1,0 +1,46 @@
+name: Test quarkus export
+on:
+  push:
+    branches:
+      - "*.*.x"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to checkout
+        required: true
+
+env:
+  JAVA_VERSION: 17
+  MAVEN_VERSION: 3.9.11
+  INTEGRATION_DIR: integration
+  BRANCH: ${{ inputs.branch || github.ref_name }}
+
+jobs:
+  export-test:
+    name: Export and build integration on quarkus
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup environment
+        uses: s4u/setup-maven-action@main
+        with:
+          checkout-ref: ${{ env.BRANCH }}
+          java-version: ${{ env.JAVA_VERSION }}
+          maven-version: ${{ env.MAVEN_VERSION }}
+          settings-repositories: '[{"id":"rh-ga","name":"Red Hat GA","url":"https://maven.repository.redhat.com/ga/"}]'
+          settings-pluginRepositories: '[{"id":"rh-ga","name":"Red Hat GA","url":"https://maven.repository.redhat.com/ga/"}]'
+
+      - name: Setup JBang
+        uses: jbangdev/setup-jbang@main
+
+      - name: Install Camel CLI from ${{ env.BRANCH }} branch
+        run: "jbang --verbose app install --name camel ./CamelJBang.java"
+
+      - name: Create and export an integration
+        run: |
+          camel init Hello.java
+          camel export --gav com.test:integration:1.0 --dir ${INTEGRATION_DIR} --java-version=${JAVA_VERSION} --runtime quarkus Hello.java
+
+      - name: Build the integration
+        run: "cd ${INTEGRATION_DIR} && mvn clean package"
+
