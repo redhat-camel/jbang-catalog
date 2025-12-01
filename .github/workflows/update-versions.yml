@@ -25,15 +25,14 @@ jobs:
       fail-fast: false
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
-
-    - name: update-versions
-      uses: ./.github/actions/update-versions
-      id: update-versions
-      with:
-        token: "${{ secrets.GITHUB_TOKEN }}"
-        issueId: '16'
-        workflowRunUrl: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: update-versions
+        uses: ./.github/actions/update-versions
+        id: update-versions
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          issueId: '16'
+          workflowRunUrl: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

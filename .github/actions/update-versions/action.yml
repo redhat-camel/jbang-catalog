@@ -16,12 +16,20 @@ inputs:
 runs:
   using: 'composite'
   steps:
-
     - name: Set up JDK 25
       uses: actions/setup-java@v5
       with:
         distribution: temurin
         java-version: 25
+
+    - name: Setup JBang
+      uses: jbangdev/setup-jbang@v0.1.1
+
+    - name: Setup maven settings
+      uses: s4u/maven-settings-action@v4.0.0
+      with:
+        repositories: '[{"id":"rh-ga","name":"Red Hat GA","url":"https://maven.repository.redhat.com/ga/"}]'
+        pluginRepositories: '[{"id":"rh-ga","name":"Red Hat GA","url":"https://maven.repository.redhat.com/ga/"}]'
 
     - name: Update versions
       shell: bash
