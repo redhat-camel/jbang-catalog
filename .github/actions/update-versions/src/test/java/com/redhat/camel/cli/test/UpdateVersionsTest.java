@@ -1,5 +1,13 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2025 Project contributors as indicated by the @author tags
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package com.redhat.camel.cli.test;
 
+import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
+import io.restassured.path.xml.XmlPath;
+import io.restassured.path.xml.element.NodeChildren;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +34,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.assertj.core.api.Assertions;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
@@ -40,11 +47,6 @@ import org.eclipse.jgit.transport.URIish;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.restassured.RestAssured;
-import io.restassured.path.json.JsonPath;
-import io.restassured.path.xml.XmlPath;
-import io.restassured.path.xml.element.NodeChildren;
 
 public class UpdateVersionsTest {
     private static final Logger log = LoggerFactory.getLogger(UpdateVersionsTest.class);
@@ -78,16 +80,16 @@ public class UpdateVersionsTest {
 
             /* From branch name such as 4.14.x to RHBQ Platform version, such as 3.27.0.redhat-00001 */
             final Map<String, String> camelMajorMinorToRhbqPlatformVersion = collectVersions(
-                quarkusRegistryBaseUrl,
-                remoteMavenRepositoryBaseUrl,
-                minimalCamelVersion);
+                    quarkusRegistryBaseUrl,
+                    remoteMavenRepositoryBaseUrl,
+                    minimalCamelVersion);
 
             final String uuid = UUID.randomUUID().toString();
             final Path checkoutDir = Path.of("target/checkout-" + uuid);
             Files.createDirectories(checkoutDir);
             try (Git git = Git.init()
-                .setDirectory(checkoutDir.toFile())
-                .call()) {
+                    .setDirectory(checkoutDir.toFile())
+                    .call()) {
                 git.remoteAdd().setName(remoteAlias).setUri(new URIish(remoteUrl)).call();
 
                 /* remoteBranchMap is from branch name such as 4.14.x to commit hash so that we can properly reset it */
@@ -113,7 +115,8 @@ public class UpdateVersionsTest {
                          * major.minor.x branch
                          */
                         final String latestExistingBranch = remoteBranchMap.keySet().iterator().next();
-                        log.info("Creating branch {} from {} and updating it to RHBQ Platform {}", branch, latestExistingBranch, platformVersion);
+                        log.info("Creating branch {} from {} and updating it to RHBQ Platform {}", branch, latestExistingBranch,
+                                platformVersion);
                         remoteHead = remoteBranchMap.get(latestExistingBranch);
                     }
 
@@ -137,18 +140,18 @@ public class UpdateVersionsTest {
                         final String msg = "Upgrade to RHBQ Platform " + platformVersion;
                         log.info("git: {}", msg);
                         git.commit()
-                            .setAuthor("Camel JBang Catalog Autoupdater", "autoupdater@localhost")
-                            .setMessage(msg)
-                            .call();
+                                .setAuthor("Camel JBang Catalog Autoupdater", "autoupdater@localhost")
+                                .setMessage(msg)
+                                .call();
 
                         // verify that everything works as expected after updating the version
                         testExport(checkoutDir);
 
                         git.push()
-                            .setRemote(remoteAlias)
-                            .add(branch)
-                            .setCredentialsProvider(creds)
-                            .call();
+                                .setRemote(remoteAlias)
+                                .add(branch)
+                                .setCredentialsProvider(creds)
+                                .call();
                     } else {
                         log.info("No change in CamelJBang.java in branch {}", branch);
                     }
@@ -156,17 +159,17 @@ public class UpdateVersionsTest {
             }
             /* Close if needed */
             RestAssured.given()
-                .accept("application/vnd.github+json")
-                .header("Authorization", "Bearer " + ghToken)
-                .header("X-GitHub-Api-Version", "2022-11-28")
-                .body("""
-                    {
-                        "state":"closed"
-                    }
-                    """)
-                .patch("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId)
-                .then()
-                .statusCode(200);
+                    .accept("application/vnd.github+json")
+                    .header("Authorization", "Bearer " + ghToken)
+                    .header("X-GitHub-Api-Version", "2022-11-28")
+                    .body("""
+                            {
+                                "state":"closed"
+                            }
+                            """)
+                    .patch("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId)
+                    .then()
+                    .statusCode(200);
         } catch (Exception e) {
             reportFailure(e, ghRepository, issueId, workflowRunUrl, ghToken);
         }
@@ -192,53 +195,54 @@ public class UpdateVersionsTest {
 
         /* Add comment */
         String st = stackTrace.toString()
-            .replace("\"", "\\\"")
-            .replace("\\", "\\\\")
-            .replace("\n", "\\n")
-            .replace("\t", "\\t");
+                .replace("\"", "\\\"")
+                .replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
         if (st.length() > 65000) {
             st = st.substring(0, 65000);
         }
         final String body = """
-            {
-                "body" : "`update-versions` failed in %s :\\n\\n```\\n%s\\n```"
-            }
-            """.formatted(workflowRunUrl, st);
+                {
+                    "body" : "`update-versions` failed in %s :\\n\\n```\\n%s\\n```"
+                }
+                """.formatted(workflowRunUrl, st);
         //log.info("Creating new comment " + body);
         RestAssured.given()
-            .accept("application/vnd.github+json")
-            .header("Authorization", "Bearer " + ghToken)
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .body(body)
-            .post("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId + "/comments")
-            .then()
-            .statusCode(201);
+                .accept("application/vnd.github+json")
+                .header("Authorization", "Bearer " + ghToken)
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .body(body)
+                .post("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId + "/comments")
+                .then()
+                .statusCode(201);
 
         /* Open the issue if needed */
         RestAssured.given()
-            .accept("application/vnd.github+json")
-            .header("Authorization", "Bearer " + ghToken)
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .body("""
-                {
-                    "state":"open"
-                }
-                """)
-            .patch("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId)
-            .then()
-            .statusCode(200);
+                .accept("application/vnd.github+json")
+                .header("Authorization", "Bearer " + ghToken)
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .body("""
+                        {
+                            "state":"open"
+                        }
+                        """)
+                .patch("https://api.github.com/repos/" + ghRepository + "/issues/" + issueId)
+                .then()
+                .statusCode(200);
     }
 
-    static Map<String, String> fetchBranches(Git git, String remoteUrl, String remoteAlias, CredentialsProvider creds) throws GitAPIException {
+    static Map<String, String> fetchBranches(Git git, String remoteUrl, String remoteAlias, CredentialsProvider creds)
+            throws GitAPIException {
         final Set<String> remoteBranches = Git.lsRemoteRepository()
-            .setCredentialsProvider(creds)
-            .setHeads(true)
-            .setTags(false)
-            .setRemote(remoteUrl)
-            .call().stream()
-            .map(ref -> ref.getName().substring("refs/heads/".length()))
-            .filter(b -> BRANCH_PATTERN.matcher(b).matches())
-            .collect(Collectors.toCollection(() -> new TreeSet<>(new BranchComparator().reversed())));
+                .setCredentialsProvider(creds)
+                .setHeads(true)
+                .setTags(false)
+                .setRemote(remoteUrl)
+                .call().stream()
+                .map(ref -> ref.getName().substring("refs/heads/".length()))
+                .filter(b -> BRANCH_PATTERN.matcher(b).matches())
+                .collect(Collectors.toCollection(() -> new TreeSet<>(new BranchComparator().reversed())));
         log.info("Available branches in {}: {}", remoteAlias, remoteBranches);
 
         Map<String, String> result = new LinkedHashMap<>();
@@ -246,10 +250,10 @@ public class UpdateVersionsTest {
             log.info("Fetching {} from {}", branch, remoteAlias);
             final String remoteRef = "refs/heads/" + branch;
             final FetchResult fetchResult = git.fetch()
-                .setRemote(remoteAlias)
-                .setRefSpecs(remoteRef)
-                .setCredentialsProvider(creds)
-                .call();
+                    .setRemote(remoteAlias)
+                    .setRefSpecs(remoteRef)
+                    .setCredentialsProvider(creds)
+                    .call();
             final String sha1 = fetchResult.getAdvertisedRef(remoteRef).getObjectId().getName();
             result.put(branch, sha1);
         }
@@ -257,13 +261,13 @@ public class UpdateVersionsTest {
     }
 
     static Map<String, String> collectVersions(String quarkusRegistryBaseUrl, String remoteMavenRepositoryBaseUrl,
-        ComparableVersion minimalCamelVersion) {
+            ComparableVersion minimalCamelVersion) {
         Map<String, String> result = new LinkedHashMap<>();
 
         final JsonPath jsonPath = RestAssured.get(quarkusRegistryBaseUrl + "/client/platforms")
-            .then()
-            .statusCode(200)
-            .extract().jsonPath();
+                .then()
+                .statusCode(200)
+                .extract().jsonPath();
 
         final List<Map<String, Object>> plfs = jsonPath.get("platforms");
 
@@ -276,54 +280,54 @@ public class UpdateVersionsTest {
 
                         final List<String> boms = (List<String>) release.get("member-boms");
                         boms.stream()
-                            .filter(gav -> gav.startsWith("com.redhat.quarkus.platform:quarkus-camel-bom:"))
-                            .findFirst()
-                            .ifPresent(ceqBomGav -> {
-                                final String[] ceqBomGavSegments = ceqBomGav.split(":");
-                                final String bomVersion = ceqBomGavSegments[4];
-                                final String url = toUrl(remoteMavenRepositoryBaseUrl, ceqBomGavSegments[0],
-                                    ceqBomGavSegments[1], bomVersion, "pom");
-                                final XmlPath xmlPath = RestAssured.get(url)
-                                    .then()
-                                    .statusCode(200)
-                                    .extract().xmlPath();
+                                .filter(gav -> gav.startsWith("com.redhat.quarkus.platform:quarkus-camel-bom:"))
+                                .findFirst()
+                                .ifPresent(ceqBomGav -> {
+                                    final String[] ceqBomGavSegments = ceqBomGav.split(":");
+                                    final String bomVersion = ceqBomGavSegments[4];
+                                    final String url = toUrl(remoteMavenRepositoryBaseUrl, ceqBomGavSegments[0],
+                                            ceqBomGavSegments[1], bomVersion, "pom");
+                                    final XmlPath xmlPath = RestAssured.get(url)
+                                            .then()
+                                            .statusCode(200)
+                                            .extract().xmlPath();
 
-                                final NodeChildren deps = xmlPath
-                                    .get("project.dependencyManagement.dependencies.dependency");
-                                final Optional<String> camelVersionOpt = deps.list().stream()
-                                    .map(n -> {
-                                        String groupId = n.getNode("groupId").value();
-                                        String artifactId = n.getNode("artifactId").value();
-                                        if ("org.apache.camel".equals(groupId) && "camel-direct".equals(artifactId)) {
-                                            return n.getNode("version").value();
-                                        }
-                                        return null;
-                                    })
-                                    .filter(Objects::nonNull)
-                                    .findFirst();
-                                if (camelVersionOpt.isEmpty()) {
-                                    throw new IllegalStateException("org.apache.camel:camel-direct not found in " + url);
-                                }
-                                final String camelVersion = camelVersionOpt.get();
-                                final ComparableVersion comparableCamelVersion = new ComparableVersion(camelVersion);
-                                if (minimalCamelVersion.compareTo(comparableCamelVersion) > 0) {
-                                    log.info("Skipping Camel version {} in {}", camelVersion, ceqBomGav);
-                                    return;
-                                }
+                                    final NodeChildren deps = xmlPath
+                                            .get("project.dependencyManagement.dependencies.dependency");
+                                    final Optional<String> camelVersionOpt = deps.list().stream()
+                                            .map(n -> {
+                                                String groupId = n.getNode("groupId").value();
+                                                String artifactId = n.getNode("artifactId").value();
+                                                if ("org.apache.camel".equals(groupId) && "camel-direct".equals(artifactId)) {
+                                                    return n.getNode("version").value();
+                                                }
+                                                return null;
+                                            })
+                                            .filter(Objects::nonNull)
+                                            .findFirst();
+                                    if (camelVersionOpt.isEmpty()) {
+                                        throw new IllegalStateException("org.apache.camel:camel-direct not found in " + url);
+                                    }
+                                    final String camelVersion = camelVersionOpt.get();
+                                    final ComparableVersion comparableCamelVersion = new ComparableVersion(camelVersion);
+                                    if (minimalCamelVersion.compareTo(comparableCamelVersion) > 0) {
+                                        log.info("Skipping Camel version {} in {}", camelVersion, ceqBomGav);
+                                        return;
+                                    }
 
-                                log.info("Found Camel {} in {}", camelVersion, ceqBomGav);
+                                    log.info("Found Camel {} in {}", camelVersion, ceqBomGav);
 
-                                final String[] camelVersionSegments = camelVersion.split("\\.");
-                                final String camelMajorMinorBranch = camelVersionSegments[0] + "." + camelVersionSegments[1]
-                                    + ".x";
-                                if (result.containsKey(camelMajorMinorBranch)) {
-                                    throw new IllegalStateException(
-                                        camelMajorMinorBranch + " available in more than one platform streams: "
-                                            + result.get(camelMajorMinorBranch)
-                                            + " and " + bomVersion);
-                                }
-                                result.put(camelMajorMinorBranch, bomVersion);
-                            });
+                                    final String[] camelVersionSegments = camelVersion.split("\\.");
+                                    final String camelMajorMinorBranch = camelVersionSegments[0] + "." + camelVersionSegments[1]
+                                            + ".x";
+                                    if (result.containsKey(camelMajorMinorBranch)) {
+                                        throw new IllegalStateException(
+                                                camelMajorMinorBranch + " available in more than one platform streams: "
+                                                        + result.get(camelMajorMinorBranch)
+                                                        + " and " + bomVersion);
+                                    }
+                                    result.put(camelMajorMinorBranch, bomVersion);
+                                });
                     }
                 }
             }
@@ -372,12 +376,11 @@ public class UpdateVersionsTest {
             sb.append('/');
         }
         sb.append(groupId.replace('.', '/'))
-            .append('/').append(artifactId)
-            .append('/').append(version)
-            .append('/').append(artifactId).append('-').append(version).append(".").append(type);
+                .append('/').append(artifactId)
+                .append('/').append(version)
+                .append('/').append(artifactId).append('-').append(version).append(".").append(type);
         return sb.toString();
     }
-
 
     static class GitHubTokenCredentials extends CredentialsProvider {
 
@@ -450,7 +453,7 @@ public class UpdateVersionsTest {
                     }
                 }
                 throw new UnsupportedCredentialItem(uri, i.getClass().getName()
-                    + ":" + i.getPromptText());
+                        + ":" + i.getPromptText());
             }
             return true;
         }
@@ -469,21 +472,21 @@ public class UpdateVersionsTest {
     private void testExport(Path gitRoot) {
         // check if jbang is in $PATH
         if (Arrays.stream(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
-            .map(Paths::get)
-            .noneMatch(dir -> Files.exists(dir.resolve("jbang")))) {
+                .map(Paths::get)
+                .noneMatch(dir -> Files.exists(dir.resolve("jbang")))) {
             throw new RuntimeException("jbang must be in PATH");
         }
 
         // install camel-cli
         execute("jbang", "--verbose", "app", "install", "--name", "camel", "--force",
-            gitRoot.resolve("CamelJBang.java").toAbsolutePath().toString());
+                gitRoot.resolve("CamelJBang.java").toAbsolutePath().toString());
 
         // create and export an example integration
         final String filePath = gitRoot.resolve("Hello.java").toAbsolutePath().toString();
         final Path integrationDir = gitRoot.resolve(INTEGRATION_DIR);
         execute("camel", "init", filePath);
         execute("camel", "export", "--gav", "com.test:integration:1.0", "--logging",
-            "--dir", integrationDir.toString(), "--runtime", "quarkus", filePath);
+                "--dir", integrationDir.toString(), "--runtime", "quarkus", filePath);
 
         // try to build the integration
         execute("./mvnw", "clean", "package", "--no-transfer-progress", "-f", integrationDir.resolve("pom.xml").toString());

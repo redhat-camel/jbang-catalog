@@ -29,7 +29,8 @@ import java.util.Locale;
 import java.util.Properties;
 
 /**
- * Copied from https://github.com/apache/maven/blob/6de6877c2fe772c6d0a19cf518a3fd806b8a0afb/maven-artifact/src/main/java/org/apache/maven/artifact/versioning/ComparableVersion.java
+ * Copied from
+ * https://github.com/apache/maven/blob/6de6877c2fe772c6d0a19cf518a3fd806b8a0afb/maven-artifact/src/main/java/org/apache/maven/artifact/versioning/ComparableVersion.java
  * <p>
  * Generic implementation of version comparison.
  * </p>
@@ -38,28 +39,29 @@ import java.util.Properties;
  * <ul>
  * <li>mixing of '<code>-</code>' (hyphen) and '<code>.</code>' (dot) separators,</li>
  * <li>transition between characters and digits also constitutes a separator:
- *     <code>1.0alpha1 =&gt; [1, 0, alpha, 1]</code></li>
+ * <code>1.0alpha1 =&gt; [1, 0, alpha, 1]</code></li>
  * <li>unlimited number of version components,</li>
  * <li>version components in the text can be digits or strings,</li>
  * <li>strings are checked for well-known qualifiers and the qualifier ordering is used for version ordering.
- *     Well-known qualifiers (case insensitive) are:<ul>
- *     <li><code>alpha</code> or <code>a</code></li>
- *     <li><code>beta</code> or <code>b</code></li>
- *     <li><code>milestone</code> or <code>m</code></li>
- *     <li><code>rc</code> or <code>cr</code></li>
- *     <li><code>snapshot</code></li>
- *     <li><code>(the empty string)</code> or <code>ga</code> or <code>final</code></li>
- *     <li><code>sp</code></li>
- *     </ul>
- *     Unknown qualifiers are considered after known qualifiers, with lexical order (always case insensitive),
- *   </li>
+ * Well-known qualifiers (case insensitive) are:
+ * <ul>
+ * <li><code>alpha</code> or <code>a</code></li>
+ * <li><code>beta</code> or <code>b</code></li>
+ * <li><code>milestone</code> or <code>m</code></li>
+ * <li><code>rc</code> or <code>cr</code></li>
+ * <li><code>snapshot</code></li>
+ * <li><code>(the empty string)</code> or <code>ga</code> or <code>final</code></li>
+ * <li><code>sp</code></li>
+ * </ul>
+ * Unknown qualifiers are considered after known qualifiers, with lexical order (always case insensitive),
+ * </li>
  * <li>a hyphen usually precedes a qualifier, and is always less important than digits/number, for example
- *   {@code 1.0.RC2 < 1.0-RC3 < 1.0.1}; but prefer {@code 1.0.0-RC1} over {@code 1.0.0.RC1}, and more
- *   generally: {@code 1.0.X2 < 1.0-X3 < 1.0.1} for any string {@code X}; but prefer {@code 1.0.0-X1}
- *   over {@code 1.0.0.X1}.</li>
+ * {@code 1.0.RC2 < 1.0-RC3 < 1.0.1}; but prefer {@code 1.0.0-RC1} over {@code 1.0.0.RC1}, and more
+ * generally: {@code 1.0.X2 < 1.0-X3 < 1.0.1} for any string {@code X}; but prefer {@code 1.0.0-X1}
+ * over {@code 1.0.0.X1}.</li>
  * </ul>
  *
- * @see <a href="https://cwiki.apache.org/confluence/display/MAVENOLD/Versioning">"Versioning" on Maven Wiki</a>
+ * @see    <a href="https://cwiki.apache.org/confluence/display/MAVENOLD/Versioning">"Versioning" on Maven Wiki</a>
  * @author <a href="mailto:kenney@apache.org">Kenney Westerhof</a>
  * @author <a href="mailto:hboutemy@apache.org">Hervé Boutemy</a>
  */
@@ -121,21 +123,21 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
             }
 
             switch (item.getType()) {
-                case INT_ITEM:
-                    int itemValue = ((IntItem) item).value;
-                    return (value < itemValue) ? -1 : ((value == itemValue) ? 0 : 1);
-                case LONG_ITEM:
-                case BIGINTEGER_ITEM:
-                    return -1;
+            case INT_ITEM:
+                int itemValue = ((IntItem) item).value;
+                return (value < itemValue) ? -1 : ((value == itemValue) ? 0 : 1);
+            case LONG_ITEM:
+            case BIGINTEGER_ITEM:
+                return -1;
 
-                case STRING_ITEM:
-                    return 1; // 1.1 > 1-sp
+            case STRING_ITEM:
+                return 1; // 1.1 > 1-sp
 
-                case LIST_ITEM:
-                    return 1; // 1.1 > 1-1
+            case LIST_ITEM:
+                return 1; // 1.1 > 1-1
 
-                default:
-                    throw new IllegalStateException("invalid item: " + item.getClass());
+            default:
+                throw new IllegalStateException("invalid item: " + item.getClass());
             }
         }
 
@@ -191,22 +193,22 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
             }
 
             switch (item.getType()) {
-                case INT_ITEM:
-                    return 1;
-                case LONG_ITEM:
-                    long itemValue = ((LongItem) item).value;
-                    return (value < itemValue) ? -1 : ((value == itemValue) ? 0 : 1);
-                case BIGINTEGER_ITEM:
-                    return -1;
+            case INT_ITEM:
+                return 1;
+            case LONG_ITEM:
+                long itemValue = ((LongItem) item).value;
+                return (value < itemValue) ? -1 : ((value == itemValue) ? 0 : 1);
+            case BIGINTEGER_ITEM:
+                return -1;
 
-                case STRING_ITEM:
-                    return 1; // 1.1 > 1-sp
+            case STRING_ITEM:
+                return 1; // 1.1 > 1-sp
 
-                case LIST_ITEM:
-                    return 1; // 1.1 > 1-1
+            case LIST_ITEM:
+                return 1; // 1.1 > 1-1
 
-                default:
-                    throw new IllegalStateException("invalid item: " + item.getClass());
+            default:
+                throw new IllegalStateException("invalid item: " + item.getClass());
             }
         }
 
@@ -262,21 +264,21 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
             }
 
             switch (item.getType()) {
-                case INT_ITEM:
-                case LONG_ITEM:
-                    return 1;
+            case INT_ITEM:
+            case LONG_ITEM:
+                return 1;
 
-                case BIGINTEGER_ITEM:
-                    return value.compareTo(((BigIntegerItem) item).value);
+            case BIGINTEGER_ITEM:
+                return value.compareTo(((BigIntegerItem) item).value);
 
-                case STRING_ITEM:
-                    return 1; // 1.1 > 1-sp
+            case STRING_ITEM:
+                return 1; // 1.1 > 1-sp
 
-                case LIST_ITEM:
-                    return 1; // 1.1 > 1-1
+            case LIST_ITEM:
+                return 1; // 1.1 > 1-1
 
-                default:
-                    throw new IllegalStateException("invalid item: " + item.getClass());
+            default:
+                throw new IllegalStateException("invalid item: " + item.getClass());
             }
         }
 
@@ -308,8 +310,7 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
      * Represents a string in the version item list, usually a qualifier.
      */
     private static class StringItem implements Item {
-        private static final List<String> QUALIFIERS =
-                Arrays.asList("alpha", "beta", "milestone", "rc", "snapshot", "", "sp");
+        private static final List<String> QUALIFIERS = Arrays.asList("alpha", "beta", "milestone", "rc", "snapshot", "", "sp");
 
         private static final Properties ALIASES = new Properties();
 
@@ -332,16 +333,16 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
             if (followedByDigit && value.length() == 1) {
                 // a1 = alpha-1, b1 = beta-1, m1 = milestone-1
                 switch (value.charAt(0)) {
-                    case 'a':
-                        value = "alpha";
-                        break;
-                    case 'b':
-                        value = "beta";
-                        break;
-                    case 'm':
-                        value = "milestone";
-                        break;
-                    default:
+                case 'a':
+                    value = "alpha";
+                    break;
+                case 'b':
+                    value = "beta";
+                    break;
+                case 'm':
+                    value = "milestone";
+                    break;
+                default:
                 }
             }
             this.value = ALIASES.getProperty(value, value);
@@ -367,8 +368,8 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
          * or QUALIFIERS.size and then resort to lexical ordering. Most comparisons are decided by the first character,
          * so this is still fast. If more characters are needed then it requires a lexical sort anyway.
          *
-         * @param qualifier
-         * @return an equivalent value that can be used with lexical comparison
+         * @param  qualifier
+         * @return           an equivalent value that can be used with lexical comparison
          */
         public static String comparableQualifier(String qualifier) {
             int i = QUALIFIERS.indexOf(qualifier);
@@ -383,19 +384,19 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
                 return comparableQualifier(value).compareTo(RELEASE_VERSION_INDEX);
             }
             switch (item.getType()) {
-                case INT_ITEM:
-                case LONG_ITEM:
-                case BIGINTEGER_ITEM:
-                    return -1; // 1.any < 1.1 ?
+            case INT_ITEM:
+            case LONG_ITEM:
+            case BIGINTEGER_ITEM:
+                return -1; // 1.any < 1.1 ?
 
-                case STRING_ITEM:
-                    return comparableQualifier(value).compareTo(comparableQualifier(((StringItem) item).value));
+            case STRING_ITEM:
+                return comparableQualifier(value).compareTo(comparableQualifier(((StringItem) item).value));
 
-                case LIST_ITEM:
-                    return -1; // 1.any < 1-1
+            case LIST_ITEM:
+                return -1; // 1.any < 1-1
 
-                default:
-                    throw new IllegalStateException("invalid item: " + item.getClass());
+            default:
+                throw new IllegalStateException("invalid item: " + item.getClass());
             }
         }
 
@@ -467,34 +468,34 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
                 return 0;
             }
             switch (item.getType()) {
-                case INT_ITEM:
-                case LONG_ITEM:
-                case BIGINTEGER_ITEM:
-                    return -1; // 1-1 < 1.0.x
+            case INT_ITEM:
+            case LONG_ITEM:
+            case BIGINTEGER_ITEM:
+                return -1; // 1-1 < 1.0.x
 
-                case STRING_ITEM:
-                    return 1; // 1-1 > 1-sp
+            case STRING_ITEM:
+                return 1; // 1-1 > 1-sp
 
-                case LIST_ITEM:
-                    Iterator<Item> left = iterator();
-                    Iterator<Item> right = ((ListItem) item).iterator();
+            case LIST_ITEM:
+                Iterator<Item> left = iterator();
+                Iterator<Item> right = ((ListItem) item).iterator();
 
-                    while (left.hasNext() || right.hasNext()) {
-                        Item l = left.hasNext() ? left.next() : null;
-                        Item r = right.hasNext() ? right.next() : null;
+                while (left.hasNext() || right.hasNext()) {
+                    Item l = left.hasNext() ? left.next() : null;
+                    Item r = right.hasNext() ? right.next() : null;
 
-                        // if this is shorter, then invert the compare and mul with -1
-                        int result = l == null ? (r == null ? 0 : -1 * r.compareTo(l)) : l.compareTo(r);
+                    // if this is shorter, then invert the compare and mul with -1
+                    int result = l == null ? (r == null ? 0 : -1 * r.compareTo(l)) : l.compareTo(r);
 
-                        if (result != 0) {
-                            return result;
-                        }
+                    if (result != 0) {
+                        return result;
                     }
+                }
 
-                    return 0;
+                return 0;
 
-                default:
-                    throw new IllegalStateException("invalid item: " + item.getClass());
+            default:
+                throw new IllegalStateException("invalid item: " + item.getClass());
             }
         }
 
@@ -679,8 +680,13 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
      * Main to test version parsing and comparison.
      * <p>
      * To check how "1.2.7" compares to "1.2-SNAPSHOT", for example, you can issue
-     * <pre>java -jar ${maven.repo.local}/org/apache/maven/maven-artifact/${maven.version}/maven-artifact-${maven.version}.jar "1.2.7" "1.2-SNAPSHOT"</pre>
+     *
+     * <pre>
+     * java -jar ${maven.repo.local}/org/apache/maven/maven-artifact/${maven.version}/maven-artifact-${maven.version}.jar "1.2.7" "1.2-SNAPSHOT"
+     * </pre>
+     *
      * command to command line. Result of given command will be something like this:
+     *
      * <pre>
      * Display parameters as parsed by Maven (in canonical form) and comparison result:
      * 1. 1.2.7 == 1.2.7
@@ -689,7 +695,7 @@ public class ComparableVersion implements Comparable<ComparableVersion> {
      * </pre>
      *
      * @param args the version strings to parse and compare. You can pass arbitrary number of version strings and always
-     * two adjacent will be compared
+     *             two adjacent will be compared
      */
     public static void main(String... args) {
         System.out.println("Display parameters as parsed by Maven (in canonical form and as a list of tokens) and"
