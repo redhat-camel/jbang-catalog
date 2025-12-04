@@ -1,19 +1,5 @@
 package com.redhat.camel.cli.test;
 
-import org.junit.jupiter.api.Test;
-
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.UnsupportedCredentialItem;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.transport.CredentialItem;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.FetchResult;
-import org.eclipse.jgit.transport.URIish;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +27,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.UnsupportedCredentialItem;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.transport.CredentialItem;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.FetchResult;
+import org.eclipse.jgit.transport.URIish;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.path.xml.XmlPath;
@@ -49,7 +49,7 @@ import io.restassured.path.xml.element.NodeChildren;
 public class UpdateVersionsTest {
     private static final Logger log = LoggerFactory.getLogger(UpdateVersionsTest.class);
 
-    private static final Pattern BRANCH_PATTERN = Pattern.compile("[0-9]+\\.[0-9]+\\.[0-9]+($|[^0-9])");
+    private static final Pattern BRANCH_PATTERN = Pattern.compile("[0-9]+\\.[0-9]+\\.(?:x|[0-9]+)");
     private static final Pattern JAVA_OPTIONS_PATTERN = Pattern.compile("\n//[ \t]*JAVA_OPTIONS[ \t]+(.*)(\r?\n)");
 
     private static final String INTEGRATION_DIR = "integration";
@@ -170,6 +170,17 @@ public class UpdateVersionsTest {
         } catch (Exception e) {
             reportFailure(e, ghRepository, issueId, workflowRunUrl, ghToken);
         }
+    }
+
+    @Test
+    void branchPattern() {
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.3").matches()).isTrue();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.333").matches()).isTrue();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.x").matches()).isTrue();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.3.4").matches()).isFalse();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.3-foo").matches()).isFalse();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2.3.redhat-00001").matches()).isFalse();
+        Assertions.assertThat(BRANCH_PATTERN.matcher("1.2").matches()).isFalse();
     }
 
     static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken) {
@@ -366,6 +377,7 @@ public class UpdateVersionsTest {
             .append('/').append(artifactId).append('-').append(version).append(".").append(type);
         return sb.toString();
     }
+
 
     static class GitHubTokenCredentials extends CredentialsProvider {
 
