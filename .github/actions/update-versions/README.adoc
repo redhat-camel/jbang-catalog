@@ -1,0 +1,18 @@
+= Tests and update scripts for the productized Camel JBang Catalog
+
+== Local testing
+
+[source,shell]
+----
+# Set the local testing mode to avoid pushing to remotes
+# and changing the state of the GitHub issues
+export LOCAL_TEST=true
+
+# Optionally replace the default repo
+# https://github.com/redhat-camel/jbang-catalog.git
+# with a local copy or a fork
+JBANG_CATALOG_GIT_REPOSITORY=file:///home/$USER/orgs/redhat-camel-jbang-catalog/.git
+
+mvn clean test
+...
+----
