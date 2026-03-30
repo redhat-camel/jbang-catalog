@@ -28,7 +28,7 @@
 
     <groupId>com.redhat.camel</groupId>
     <artifactId>jbang-catalog</artifactId>
-    <version>4.18.0-SNAPSHOT</version>
+    <version>4.18.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Red Hat JBang Catalog</name>
