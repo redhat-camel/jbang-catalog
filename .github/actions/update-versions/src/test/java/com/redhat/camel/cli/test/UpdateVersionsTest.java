@@ -35,6 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
+import org.cliassured.CliAssured;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -45,7 +46,6 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.FetchResult;
 import org.eclipse.jgit.transport.URIish;
 import org.junit.jupiter.api.Test;
-import org.l2x6.cli.assured.CliAssured;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -516,17 +516,17 @@ public class UpdateVersionsTest {
             throw new RuntimeException("jbang must be in PATH");
         }
 
-        // install camel-cli
+        // Install Camel CLI
         final Path camelJbangPath = gitRoot.resolve("CamelJBang.java").toAbsolutePath();
-        CliAssured.command("jbang", "--verbose", "app", "install", "--name", "camel", "--force",
-                camelJbangPath.toString())
+        CliAssured.command(
+                "jbang", "--verbose", "app", "install",
+                "--name", "camel", "--force", camelJbangPath.toString())
                 .stderrToStdout()
                 .then()
                 .stdout()
                 .log()
                 .hasLinesContaining("Command installed: camel")
-                .start()
-                .awaitTermination()
+                .execute()
                 .assertSuccess();
 
         final Path userHome = Path.of(System.getProperty("user.home"));
