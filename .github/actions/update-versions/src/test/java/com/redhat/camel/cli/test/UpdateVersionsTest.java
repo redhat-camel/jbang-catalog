@@ -10,7 +10,6 @@ import io.restassured.path.xml.XmlPath;
 import io.restassured.path.xml.element.NodeChildren;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -63,6 +62,7 @@ public class UpdateVersionsTest {
     private static final Pattern CAMEL_BOM_VERSION_PATTERN = Pattern
             .compile("\\Qorg.apache.camel:camel-bom:${camel.jbang.version:\\E([^}]+)\\Q}@pom\\E");
     private static String GH_API_VERSION = "2026-03-10";
+
     @Test
     void update() throws Exception {
 
@@ -151,7 +151,7 @@ public class UpdateVersionsTest {
                     newProps.put("-Dcamel.jbang.quarkusVersion", platformVersion);
                     final String newSource = edit(oldSource, newProps);
                     final boolean sourceChanged = !newSource.equals(oldSource);
-                    if (sourceChanged) {
+                    if (sourceChanged || localTest) {
                         Files.writeString(camelJBangJavaPath, newSource, StandardCharsets.UTF_8);
                         git.add().addFilepattern("CamelJBang.java").call();
                         final String msg = "Upgrade to RHBQ Platform " + platformVersion;
@@ -175,7 +175,8 @@ public class UpdateVersionsTest {
                                 for (RemoteRefUpdate u : r.getRemoteUpdates()) {
                                     log.info("Push result " + u);
                                     if (u.getStatus() != Status.UP_TO_DATE && u.getStatus() != Status.OK) {
-                                        throw new IllegalStateException("Could not push branch " + branch + " to " + remoteUrl + ": " + u);
+                                        throw new IllegalStateException(
+                                                "Could not push branch " + branch + " to " + remoteUrl + ": " + u);
                                     }
                                 }
                             }
@@ -222,7 +223,8 @@ public class UpdateVersionsTest {
         Assertions.assertThat(BRANCH_PATTERN.matcher("1.2").matches()).isFalse();
     }
 
-    static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken) throws Exception {
+    static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken)
+            throws Exception {
 
         if (ghToken == null) {
             throw new IllegalStateException("GITHUB_TOKEN must be set to report the build failure in #" + issueId);
@@ -257,7 +259,8 @@ public class UpdateVersionsTest {
                 .then()
                 .extract();
         if (response.statusCode() != 201) {
-            throw new IllegalStateException("Could not comment on issue #" + issueId +": "+ response.statusLine() + " " + response.body().asString());
+            throw new IllegalStateException(
+                    "Could not comment on issue #" + issueId + ": " + response.statusLine() + " " + response.body().asString());
         }
 
         /* Open the issue if needed */
@@ -566,75 +569,84 @@ public class UpdateVersionsTest {
         final String camelVersion = findCamelVersion(camelJbangPath);
         final Path testDir = Path.of("target/UpdateVersionsTest-" + camelVersion + "-" + UUID.randomUUID())
                 .toAbsolutePath().normalize();
-        try (RestoreFile settings = new RestoreFile(userHome.resolve(".m2/settings.xml"), Path.of("settings.xml"))) {
-            // FIXME: do not replace settings.xml once https://issues.redhat.com/browse/CEQ-12225 is fixed
-
-            CliAssured.command("camel", "version")
-                    .stderrToStdout()
-                    .then()
-                    .stdout()
-                    .log()
-                    .hasLinesMatching("\\QCamel JBang version: " + camelVersion + "\\E$")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-
-            // create and export an example integration
-
-            try {
-                Files.createDirectories(testDir);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Could not create " + testDir, e);
+        if (camelVersion.startsWith("4.14.")) {
+            try (RestoreFile settings = new RestoreFile(userHome.resolve(".m2/settings.xml"), Path.of("settings.xml"))) {
+                // Known issue in Camel JBang 4.14.x https://issues.redhat.com/browse/CEQ-12225
+                endToEndJbang(platformVersion, camelVersion, testDir);
+            } catch (Exception e) {
+                throw new RuntimeException("Could not replace or restore settings.xml", e);
             }
+        } else {
+            endToEndJbang(platformVersion, camelVersion, testDir);
+        }
+    }
 
-            final Path helloJavaPath = testDir.resolve("Hello.java");
-            CliAssured.command("camel", "init", "Hello.java")
-                    .cd(testDir)
-                    .stderrToStdout()
-                    .then()
-                    .stdout()
-                    .log()
-                    .execute()
-                    .assertSuccess();
-            Assertions.assertThat(helloJavaPath)
-                    .isRegularFile()
-                    .content()
-                    .contains("Hello extends RouteBuilder");
+    static void endToEndJbang(String platformVersion, final String camelVersion, final Path testDir) {
+        CliAssured.command("camel", "version")
+                .stderrToStdout()
+                .then()
+                .stdout()
+                .captureAll()
+                .log()
+                .hasLinesMatching("\\QCamel JBang version: " + camelVersion + "\\E$")
+                .start()
+                .awaitTermination()
+                .assertSuccess();
 
-            CliAssured.command("camel", "export",
-                    "--gav", "com.test:integration:1.0", "--logging",
-                    "--runtime", "quarkus", "Hello.java")
-                    .cd(testDir)
-                    .stderrToStdout()
-                    .then()
-                    .stdout()
-                    .log()
-                    .execute()
-                    .assertSuccess();
+        // create and export an example integration
 
-            Assertions.assertThat(testDir.resolve("pom.xml"))
-                    .isRegularFile()
-                    .content(StandardCharsets.UTF_8)
-                    .contains("<quarkus.platform.group-id>com.redhat.quarkus.platform</quarkus.platform.group-id>")
-                    .contains("<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>")
-                    .contains("<quarkus.platform.version>" + platformVersion + "</quarkus.platform.version>");
-
-            /* try to build the integration */
-            CliAssured
-                    .command(testDir.resolve("mvnw").toString(), "clean", "package", "-ntp", "-B")
-                    .cd(testDir)
-                    .stderrToStdout()
-                    .then()
-                    .stdout()
-                    .log()
-                    .hasLinesMatching("[BUILD SUCCESS]")
-                    .execute()
-                    .assertSuccess();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Could not replace or restore settings.xml", e);
+        try {
+            Files.createDirectories(testDir);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not create " + testDir, e);
         }
 
+        final Path helloJavaPath = testDir.resolve("Hello.java");
+        CliAssured.command("camel", "init", "Hello.java")
+                .cd(testDir)
+                .stderrToStdout()
+                .then()
+                .stdout()
+                .captureAll()
+                .log()
+                .execute()
+                .assertSuccess();
+        Assertions.assertThat(helloJavaPath)
+                .isRegularFile()
+                .content()
+                .contains("Hello extends RouteBuilder");
+
+        CliAssured.command("camel", "export",
+                "--gav", "com.test:integration:1.0", "--logging",
+                "--runtime", "quarkus", "Hello.java")
+                .cd(testDir)
+                .stderrToStdout()
+                .then()
+                .stdout()
+                .captureAll()
+                .log()
+                .execute()
+                .assertSuccess();
+
+        Assertions.assertThat(testDir.resolve("pom.xml"))
+                .isRegularFile()
+                .content(StandardCharsets.UTF_8)
+                .contains("<quarkus.platform.group-id>com.redhat.quarkus.platform</quarkus.platform.group-id>")
+                .contains("<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>")
+                .contains("<quarkus.platform.version>" + platformVersion + "</quarkus.platform.version>");
+
+        /* try to build the integration */
+        CliAssured
+                .command(testDir.resolve("mvnw").toString(), "clean", "package", "-ntp", "-B")
+                .cd(testDir)
+                .stderrToStdout()
+                .then()
+                .stdout()
+                .captureAll()
+                .log()
+                .hasLinesMatching("[BUILD SUCCESS]")
+                .execute()
+                .assertSuccess();
     }
 
     static String findCamelVersion(Path camelJbangPath) {
