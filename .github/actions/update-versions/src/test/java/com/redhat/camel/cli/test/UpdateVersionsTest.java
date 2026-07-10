@@ -41,7 +41,12 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.UnsupportedCredentialItem;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialItem;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.FetchResult;
@@ -49,6 +54,7 @@ import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.RemoteRefUpdate.Status;
 import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +67,11 @@ public class UpdateVersionsTest {
     private static final Pattern REPOS_PATTERN = Pattern.compile("\n//[ \t]*REPOS[ \t]+(.*)(\r?\n)");
     private static final Pattern CAMEL_BOM_VERSION_PATTERN = Pattern
             .compile("\\Qorg.apache.camel:camel-bom:${camel.jbang.version:\\E([^}]+)\\Q}@pom\\E");
+    private static final Pattern REDHAT_BRANCH_PATTERN = Pattern.compile("([0-9]+\\.[0-9]+\\.[0-9]+)\\.redhat-([0-9]+)");
+    private static final Pattern KAMELETS_VERSION_PATTERN = Pattern
+            .compile("\\Qcamel-kamelets:${camel-kamelets.version:\\E([^}]+)\\Q}\\E");
+    private static final Pattern CSB_VERSION_PATTERN = Pattern
+            .compile("-Dcamel\\.jbang\\.camelSpringBootVersion=([^\\s]+)");
     private static String GH_API_VERSION = "2026-03-10";
 
     @Test
@@ -108,12 +119,33 @@ public class UpdateVersionsTest {
                     .call()) {
                 git.remoteAdd().setName(remoteAlias).setUri(new URIish(remoteUrl)).call();
 
+                /* Collect all remote branch names (including redhat branches) for version lookup */
+                final List<String> allRemoteBranches = Git.lsRemoteRepository()
+                        .setCredentialsProvider(creds)
+                        .setHeads(true)
+                        .setTags(false)
+                        .setRemote(remoteUrl)
+                        .call().stream()
+                        .map(ref -> ref.getName().substring("refs/heads/".length()))
+                        .collect(Collectors.toList());
+
                 /* remoteBranchMap is from branch name such as 4.14.x to commit hash so that we can properly reset it */
                 /*
                  * remoteBranchMap is ordered from newest to oldest branch so that we can pick the first as a base for a
                  * new major.minor.x branch
                  */
-                final Map<String, String> remoteBranchMap = fetchBranches(git, remoteUrl, remoteAlias, creds);
+                final Map<String, String> remoteBranchMap = fetchBranches(git, remoteUrl, remoteAlias, creds,
+                        allRemoteBranches);
+
+                /*
+                 * Resolve the best redhat branch per major.minor: iterate candidates from highest to lowest,
+                 * fetch each, extract versions, and keep the first whose artifacts are all available in GA.
+                 */
+                final Set<String> majorMinors = camelMajorMinorToRhbqPlatformVersion.keySet().stream()
+                        .map(k -> k.substring(0, k.lastIndexOf('.')))
+                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                final Map<String, String[]> gaRedhatBranches = resolveGaRedhatBranches(
+                        allRemoteBranches, majorMinors, git, remoteAlias, creds, mrrcUrl);
 
                 final Path camelJBangJavaPath = checkoutDir.resolve("CamelJBang.java");
                 for (Entry<String, String> en : camelMajorMinorToRhbqPlatformVersion.entrySet()) {
@@ -143,18 +175,43 @@ public class UpdateVersionsTest {
                     final Ref ref = git.getRepository().exactRef("HEAD");
                     log.info("Reset the working copy to {}@{}", branch, ref.getObjectId().getName());
 
+                    /* Look up the pre-resolved GA-available redhat branch for this major.minor */
+                    final String majorMinor = branch.substring(0, branch.lastIndexOf('.'));
+                    final String[] gaEntry = gaRedhatBranches.get(majorMinor);
+                    final String highestRedhat = gaEntry != null ? gaEntry[0] : null;
+                    Map<String, String> redhatVersions = Collections.emptyMap();
+                    if (gaEntry != null) {
+                        redhatVersions = new LinkedHashMap<>();
+                        if (!gaEntry[1].isEmpty())
+                            redhatVersions.put("camel.jbang.version", gaEntry[1]);
+                        if (!gaEntry[2].isEmpty())
+                            redhatVersions.put("camel.jbang.camelSpringBootVersion", gaEntry[2]);
+                        if (!gaEntry[3].isEmpty())
+                            redhatVersions.put("camel-kamelets.version", gaEntry[3]);
+                        log.info("Using GA-verified redhat branch {} with versions {}", highestRedhat, redhatVersions);
+                    }
+
                     /* Check/edit the versions in CamelJBang.java */
                     final String oldSource = Files.readString(camelJBangJavaPath, StandardCharsets.UTF_8);
                     final Map<String, String> newProps = new LinkedHashMap<>();
                     newProps.put("-Dcamel.jbang.quarkusGroupId", "com.redhat.quarkus.platform");
                     newProps.put("-Dcamel.jbang.quarkusArtifactId", "quarkus-bom");
                     newProps.put("-Dcamel.jbang.quarkusVersion", platformVersion);
-                    final String newSource = edit(oldSource, newProps);
+                    if (redhatVersions.containsKey("camel.jbang.camelSpringBootVersion")) {
+                        newProps.put("-Dcamel.jbang.camelSpringBootVersion",
+                                redhatVersions.get("camel.jbang.camelSpringBootVersion"));
+                    }
+                    String newSource = edit(oldSource, newProps);
+                    if (!redhatVersions.isEmpty()) {
+                        newSource = editDepsDefaults(newSource, redhatVersions);
+                    }
                     final boolean sourceChanged = !newSource.equals(oldSource);
                     if (sourceChanged || localTest) {
                         Files.writeString(camelJBangJavaPath, newSource, StandardCharsets.UTF_8);
                         git.add().addFilepattern("CamelJBang.java").call();
-                        final String msg = "Upgrade to RHBQ Platform " + platformVersion;
+                        final String msg = highestRedhat != null
+                                ? "Upgrade to RHBQ Platform " + platformVersion + " with versions from " + highestRedhat
+                                : "Upgrade to RHBQ Platform " + platformVersion;
                         log.info("git: {}", msg);
                         git.commit()
                                 .setAuthor("Camel JBang Catalog Autoupdater", "autoupdater@localhost")
@@ -223,6 +280,89 @@ public class UpdateVersionsTest {
         Assertions.assertThat(BRANCH_PATTERN.matcher("1.2").matches()).isFalse();
     }
 
+    @Test
+    void redhatBranchPattern() {
+        Matcher m1 = REDHAT_BRANCH_PATTERN.matcher("4.18.1.redhat-00024");
+        Assertions.assertThat(m1.matches()).isTrue();
+        Assertions.assertThat(m1.group(1)).isEqualTo("4.18.1");
+        Assertions.assertThat(m1.group(2)).isEqualTo("00024");
+
+        Assertions.assertThat(REDHAT_BRANCH_PATTERN.matcher("4.18.x").matches()).isFalse();
+        Assertions.assertThat(REDHAT_BRANCH_PATTERN.matcher("4.18.1").matches()).isFalse();
+        Assertions.assertThat(REDHAT_BRANCH_PATTERN.matcher("main").matches()).isFalse();
+    }
+
+    @Test
+    void findHighestRedhatBranchTest() {
+        List<String> branches = Arrays.asList(
+                "4.18.0.redhat-00001", "4.18.1.redhat-00024", "4.18.1.redhat-00003",
+                "4.14.1.redhat-00005", "4.14.0.redhat-00002",
+                "4.18.x", "4.14.x", "main");
+
+        Assertions.assertThat(findHighestRedhatBranch(branches, "4.18")).isEqualTo("4.18.1.redhat-00024");
+        Assertions.assertThat(findHighestRedhatBranch(branches, "4.14")).isEqualTo("4.14.1.redhat-00005");
+        Assertions.assertThat(findHighestRedhatBranch(branches, "4.19")).isNull();
+    }
+
+    @Test
+    void extractRedhatVersionsTest() {
+        final String gaUrl = "https://maven.repository.redhat.com/ga";
+
+        String gaSource = """
+                //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00029
+                //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00042}@pom
+                //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}
+                //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.1.redhat-00034}
+                """;
+        Map<String, String> gaVersions = extractRedhatVersions(gaSource, gaUrl);
+        Assertions.assertThat(gaVersions)
+                .containsEntry("camel.jbang.version", "4.18.1.redhat-00042")
+                .containsEntry("camel.jbang.camelSpringBootVersion", "4.18.1.redhat-00029")
+                .containsEntry("camel-kamelets.version", "4.18.1.redhat-00034")
+                .hasSize(3);
+
+        String nonGaSource = """
+                //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00027
+                //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00039}@pom
+                //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00039}
+                //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.1.redhat-00033}
+                """;
+        Map<String, String> nonGaVersions = extractRedhatVersions(nonGaSource, gaUrl);
+        Assertions.assertThat(nonGaVersions).isEmpty();
+
+        String mixedSource = """
+                //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00029
+                //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00042}@pom
+                //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}
+                //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.1.redhat-00033}
+                """;
+        Map<String, String> mixedVersions = extractRedhatVersions(mixedSource, gaUrl);
+        Assertions.assertThat(mixedVersions).isEmpty();
+    }
+
+    @Test
+    void editDepsDefaultsTest() {
+        String source = """
+                //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.0.redhat-00001}@pom
+                //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.0.redhat-00001}
+                //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.0.redhat-00010}
+                """;
+        Map<String, String> newVersions = new LinkedHashMap<>();
+        newVersions.put("camel.jbang.version", "4.18.1.redhat-00042");
+        newVersions.put("camel-kamelets.version", "4.18.1.redhat-00034");
+
+        String result = editDepsDefaults(source, newVersions);
+        Assertions.assertThat(result)
+                .contains("${camel.jbang.version:4.18.1.redhat-00042}@pom")
+                .contains("camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}")
+                .contains("${camel-kamelets.version:4.18.1.redhat-00034}")
+                .doesNotContain("4.18.0.redhat-00001")
+                .doesNotContain("4.18.0.redhat-00010");
+    }
+
     static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken)
             throws Exception {
 
@@ -282,15 +422,10 @@ public class UpdateVersionsTest {
         throw e;
     }
 
-    static Map<String, String> fetchBranches(Git git, String remoteUrl, String remoteAlias, CredentialsProvider creds)
+    static Map<String, String> fetchBranches(Git git, String remoteUrl, String remoteAlias, CredentialsProvider creds,
+            java.util.Collection<String> allRemoteBranches)
             throws GitAPIException {
-        final Set<String> remoteBranches = Git.lsRemoteRepository()
-                .setCredentialsProvider(creds)
-                .setHeads(true)
-                .setTags(false)
-                .setRemote(remoteUrl)
-                .call().stream()
-                .map(ref -> ref.getName().substring("refs/heads/".length()))
+        final Set<String> remoteBranches = allRemoteBranches.stream()
                 .filter(b -> BRANCH_PATTERN.matcher(b).matches())
                 .collect(Collectors.toCollection(() -> new TreeSet<>(new BranchComparator().reversed())));
         log.info("Available branches in {}: {}", remoteAlias, remoteBranches);
@@ -308,6 +443,23 @@ public class UpdateVersionsTest {
             result.put(branch, sha1);
         }
         return Collections.unmodifiableMap(result);
+    }
+
+    static String readFileAtCommit(org.eclipse.jgit.lib.Repository repository, ObjectId commitId, String path)
+            throws IOException {
+        try (RevWalk revWalk = new RevWalk(repository)) {
+            RevCommit commit = revWalk.parseCommit(commitId);
+            try (TreeWalk treeWalk = TreeWalk.forPath(repository, path, commit.getTree())) {
+                if (treeWalk == null) {
+                    throw new java.io.FileNotFoundException("Path not found in commit: " + path);
+                }
+                ObjectId blobId = treeWalk.getObjectId(0);
+                try (ObjectReader objectReader = repository.newObjectReader()) {
+                    ObjectLoader objectLoader = objectReader.open(blobId);
+                    return new String(objectLoader.getBytes(), StandardCharsets.UTF_8);
+                }
+            }
+        }
     }
 
     static Map<String, String> collectVersions(String quarkusRegistryBaseUrl, String remoteMavenRepositoryBaseUrl,
@@ -435,6 +587,125 @@ public class UpdateVersionsTest {
                 .append('/').append(version)
                 .append('/').append(artifactId).append('-').append(version).append(".").append(type);
         return sb.toString();
+    }
+
+    static List<String> findRedhatBranches(java.util.Collection<String> allBranches, String majorMinor) {
+        return allBranches.stream()
+                .filter(b -> REDHAT_BRANCH_PATTERN.matcher(b).matches())
+                .filter(b -> b.startsWith(majorMinor + "."))
+                .sorted(Comparator.comparing(ComparableVersion::new).reversed())
+                .collect(Collectors.toList());
+    }
+
+    static String findHighestRedhatBranch(java.util.Collection<String> allBranches, String majorMinor) {
+        List<String> candidates = findRedhatBranches(allBranches, majorMinor);
+        return candidates.isEmpty() ? null : candidates.get(0);
+    }
+
+    static Map<String, String[]> resolveGaRedhatBranches(
+            java.util.Collection<String> allRemoteBranches,
+            java.util.Collection<String> majorMinors,
+            Git git, String remoteAlias, CredentialsProvider creds, String gaUrl)
+            throws GitAPIException, IOException {
+        final Map<String, String[]> result = new LinkedHashMap<>();
+        for (String mm : majorMinors) {
+            if (result.containsKey(mm)) {
+                continue;
+            }
+            for (String candidate : findRedhatBranches(allRemoteBranches, mm)) {
+                log.info("Checking redhat branch {} for GA availability", candidate);
+                final String redhatRemoteRef = "refs/heads/" + candidate;
+                final FetchResult redhatFetch = git.fetch()
+                        .setRemote(remoteAlias)
+                        .setRefSpecs(redhatRemoteRef)
+                        .setCredentialsProvider(creds)
+                        .call();
+                final ObjectId fetchHead = redhatFetch.getAdvertisedRef(redhatRemoteRef).getObjectId();
+                final String redhatSource = readFileAtCommit(git.getRepository(), fetchHead, "CamelJBang.java");
+                final Map<String, String> candidateVersions = extractRedhatVersions(redhatSource, gaUrl);
+                if (!candidateVersions.isEmpty()) {
+                    log.info("All versions from {} are available in GA: {}", candidate, candidateVersions);
+                    result.put(mm, new String[] { candidate,
+                            candidateVersions.getOrDefault("camel.jbang.version", ""),
+                            candidateVersions.getOrDefault("camel.jbang.camelSpringBootVersion", ""),
+                            candidateVersions.getOrDefault("camel-kamelets.version", "") });
+                    break;
+                }
+                log.info("Skipping {} — not all versions available in GA", candidate);
+            }
+        }
+        return result;
+    }
+
+    static final List<String[]> GA_ARTIFACTS = List.of(
+            new String[] { "org.apache.camel", "camel-bom", "camel.jbang.version", "pom" },
+            new String[] { "org.apache.camel", "camel-jbang-core", "camel.jbang.version", "jar" },
+            new String[] { "org.apache.camel.kamelets", "camel-kamelets", "camel-kamelets.version", "jar" },
+            new String[] { "com.redhat.camel.springboot.platform", "camel-spring-boot-bom",
+                    "camel.jbang.camelSpringBootVersion", "pom" });
+
+    static boolean allVersionsAvailableInGa(Map<String, String> versions, String gaUrl) {
+        for (String[] artifact : GA_ARTIFACTS) {
+            final String version = versions.get(artifact[2]);
+            if (version == null) {
+                continue;
+            }
+            final String url = toUrl(gaUrl, artifact[0], artifact[1], version, artifact[3]);
+            try {
+                final int status = RestAssured.head(url).statusCode();
+                if (status != 200) {
+                    log.info("{}:{}:{} not available in GA (HTTP {})", artifact[0], artifact[1], version, status);
+                    return false;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to check GA availability for {}: {}", url, e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static Map<String, String> extractRedhatVersions(String source, String gaUrl) {
+        Map<String, String> result = new LinkedHashMap<>();
+        Matcher camelM = CAMEL_BOM_VERSION_PATTERN.matcher(source);
+        if (camelM.find()) {
+            result.put("camel.jbang.version", camelM.group(1));
+        }
+        Matcher csbM = CSB_VERSION_PATTERN.matcher(source);
+        if (csbM.find()) {
+            result.put("camel.jbang.camelSpringBootVersion", csbM.group(1));
+        }
+        Matcher kameletsM = KAMELETS_VERSION_PATTERN.matcher(source);
+        if (kameletsM.find()) {
+            result.put("camel-kamelets.version", kameletsM.group(1));
+        }
+        if (!allVersionsAvailableInGa(result, gaUrl)) {
+            return Collections.emptyMap();
+        }
+        return result;
+    }
+
+    static String editDepsDefaults(String source, Map<String, String> versions) {
+        String result = source;
+        String camelVersion = versions.get("camel.jbang.version");
+        if (camelVersion != null) {
+            Matcher m = CAMEL_BOM_VERSION_PATTERN.matcher(result);
+            if (m.find()) {
+                String oldVersion = m.group(1);
+                result = result.replace("${camel.jbang.version:" + oldVersion + "}",
+                        "${camel.jbang.version:" + camelVersion + "}");
+            }
+        }
+        String kameletsVersion = versions.get("camel-kamelets.version");
+        if (kameletsVersion != null) {
+            Matcher m = KAMELETS_VERSION_PATTERN.matcher(result);
+            if (m.find()) {
+                String oldVersion = m.group(1);
+                result = result.replace("${camel-kamelets.version:" + oldVersion + "}",
+                        "${camel-kamelets.version:" + kameletsVersion + "}");
+            }
+        }
+        return result;
     }
 
     static class RestoreFile implements AutoCloseable {
