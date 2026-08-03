@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,7 +37,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
+import org.cliassured.Await;
 import org.cliassured.CliAssured;
+import org.cliassured.CommandProcess;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -918,6 +921,32 @@ public class UpdateVersionsTest {
                 .hasLinesMatching("[BUILD SUCCESS]")
                 .execute()
                 .assertSuccess();
+
+        testRun(platformVersion, testDir);
+    }
+
+    static void testRun(String platformVersion, Path testDir) {
+        // Derive the expected Quarkus major.minor prefix from the platform version.
+        final String[] segments = platformVersion.split("\\.");
+        final String quarkusMajorMinorPrefix = segments[0] + "." + segments[1] + ".";
+
+        final Await.LineAwait<String> awaitQuarkusStarted = Await
+                .lineContaining("Apache Camel Quarkus " + quarkusMajorMinorPrefix);
+
+        try (CommandProcess proc = CliAssured.command("camel", "run", "--runtime=quarkus", "Hello.java")
+                .cd(testDir)
+                .autoCloseForcibly()
+                .stderrToStdout()
+                .then()
+                .stdout()
+                .await(awaitQuarkusStarted)
+                .log()
+                .start()) {
+
+            // Wait up to 5 minutes for Quarkus to start (first Maven build downloads dependencies)
+            final String matchedLine = awaitQuarkusStarted.await(Duration.ofMinutes(5));
+            log.info("camel run --runtime=quarkus started: {}", matchedLine);
+        }
     }
 
     static String findCamelVersion(Path camelJbangPath) {
