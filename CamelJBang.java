@@ -19,10 +19,10 @@
 
 //JAVA 17+
 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
-//JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00029 -Dcamel.jbang.quarkusGroupId=com.redhat.quarkus.platform -Dcamel.jbang.quarkusArtifactId=quarkus-bom -Dcamel.jbang.quarkusVersion=3.33.2.SP3-redhat-00003
-//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00042}@pom
-//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}
-//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.1.redhat-00034}
+//JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.3.redhat-00006 -Dcamel.jbang.quarkusGroupId=com.redhat.quarkus.platform -Dcamel.jbang.quarkusArtifactId=quarkus-bom -Dcamel.jbang.quarkusVersion=3.33.3.redhat-00001
+//DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.3.redhat-00005}@pom
+//DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.3.redhat-00005}
+//DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.18.3.redhat-00004}
 
 package main;
 
