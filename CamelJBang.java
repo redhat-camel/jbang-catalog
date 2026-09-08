@@ -19,6 +19,7 @@
 
 //JAVA 17+
 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+//JAVA_OPTIONS -Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/
 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.10.6.redhat-00001}@pom
 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.10.6}
 //DEPS org.apache.camel.kamelets:camel-kamelets:${camel-kamelets.version:4.10.6.redhat-00001}
