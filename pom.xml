@@ -28,7 +28,7 @@
 
     <groupId>com.redhat.camel</groupId>
     <artifactId>jbang-catalog</artifactId>
-    <version>4.18.4.redhat-00002</version>
+    <version>4.18.4.redhat-00003</version>
     <packaging>pom</packaging>
 
     <name>Red Hat JBang Catalog</name>
@@ -63,7 +63,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <camel-version>4.18.4.redhat-00001</camel-version>
         <camel-community-version>4.18.4</camel-community-version>
-        <camel-spring-boot-version>4.18.4.redhat-00002</camel-spring-boot-version>
+        <camel-spring-boot-version>4.18.4.redhat-00003</camel-spring-boot-version>
         <camel-kamelets-version>4.18.4.redhat-00001</camel-kamelets-version>
     </properties>
 
