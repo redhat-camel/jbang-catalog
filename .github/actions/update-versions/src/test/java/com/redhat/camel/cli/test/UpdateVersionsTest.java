@@ -313,6 +313,7 @@ public class UpdateVersionsTest {
 
         String gaSource = """
                 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/
                 //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00029
                 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00042}@pom
                 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}
@@ -327,6 +328,7 @@ public class UpdateVersionsTest {
 
         String nonGaSource = """
                 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/
                 //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00027
                 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00039}@pom
                 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00039}
@@ -337,6 +339,7 @@ public class UpdateVersionsTest {
 
         String mixedSource = """
                 //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/
                 //JAVA_OPTIONS -Dcamel.jbang.camelSpringBootVersion=4.18.1.redhat-00029
                 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.1.redhat-00042}@pom
                 //DEPS org.apache.camel:camel-jbang-core:${camel.jbang.version:4.18.1.redhat-00042}
