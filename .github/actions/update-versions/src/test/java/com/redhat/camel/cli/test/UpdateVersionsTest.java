@@ -846,9 +846,10 @@ public class UpdateVersionsTest {
         final String camelVersion = findCamelVersion(camelJbangPath);
         final Path testDir = Path.of("target/UpdateVersionsTest-" + camelVersion + "-" + UUID.randomUUID())
                 .toAbsolutePath().normalize();
-        if (camelVersion.startsWith("4.14.")) {
+        if (camelVersion.startsWith("4.14.") || camelVersion.startsWith("4.18.")) {
             try (RestoreFile settings = new RestoreFile(userHome.resolve(".m2/settings.xml"), Path.of("settings.xml"))) {
-                // Known issue in Camel JBang 4.14.x https://issues.redhat.com/browse/CEQ-12225
+                // CEQ-12225: 4.14.x export needs Red Hat GA repo in settings.xml
+                // CAMEL-24681: 4.18.x camel run --runtime=quarkus MavenDependencyDownloader needs it too
                 endToEndJbang(platformVersion, camelVersion, testDir);
             } catch (Exception e) {
                 throw new RuntimeException("Could not replace or restore settings.xml", e);
