@@ -350,6 +350,26 @@ public class UpdateVersionsTest {
     }
 
     @Test
+    void editTest() {
+        String source = """
+                //REPOS central=https://repo1.maven.org/maven2,redhat.ga=https://maven.repository.redhat.com/ga/
+                //JAVA_OPTIONS -Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/
+                //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.22.1}@pom
+                """;
+        Map<String, String> props = new LinkedHashMap<>();
+        props.put("-Dcamel.jbang.quarkusGroupId", "com.redhat.quarkus.platform");
+        props.put("-Dcamel.jbang.quarkusArtifactId", "quarkus-bom");
+        props.put("-Dcamel.jbang.quarkusVersion", "3.33.3.SP2-redhat-00001");
+
+        String result = edit(source, props);
+        Assertions.assertThat(result)
+                .contains("-Dcamel.extra.repos=redhat.ga=https://maven.repository.redhat.com/ga/")
+                .contains("-Dcamel.jbang.quarkusGroupId=com.redhat.quarkus.platform")
+                .contains("-Dcamel.jbang.quarkusArtifactId=quarkus-bom")
+                .contains("-Dcamel.jbang.quarkusVersion=3.33.3.SP2-redhat-00001");
+    }
+
+    @Test
     void editDepsDefaultsTest() {
         String source = """
                 //DEPS org.apache.camel:camel-bom:${camel.jbang.version:4.18.0.redhat-00001}@pom
@@ -542,7 +562,7 @@ public class UpdateVersionsTest {
             final String javaOpts = m.group(1);
             final Map<String, String> oldProps = new LinkedHashMap<>();
             for (String pair : javaOpts.split("[ \t]+")) {
-                String[] kv = pair.split("=");
+                String[] kv = pair.split("=", 2);
                 oldProps.put(kv[0], kv.length == 1 ? null : kv[1]);
             }
             oldProps.putAll(props);
