@@ -78,7 +78,7 @@ public class UpdateVersionsTest {
     private static String GH_API_VERSION = "2026-03-10";
 
     @Test
-    void update() throws Exception {
+    void update() throws Throwable {
 
         /* Input parameters */
         final boolean localTest = Boolean.parseBoolean(System.getenv("LOCAL_TEST"));
@@ -264,7 +264,7 @@ public class UpdateVersionsTest {
                         .then()
                         .statusCode(200);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             if (localTest) {
                 throw e;
             }
@@ -389,8 +389,8 @@ public class UpdateVersionsTest {
                 .doesNotContain("4.18.0.redhat-00010");
     }
 
-    static void reportFailure(Exception e, String ghRepository, String issueId, String workflowRunUrl, String ghToken)
-            throws Exception {
+    static void reportFailure(Throwable e, String ghRepository, String issueId, String workflowRunUrl, String ghToken)
+            throws Throwable {
 
         if (ghToken == null) {
             throw new IllegalStateException("GITHUB_TOKEN must be set to report the build failure in #" + issueId);
