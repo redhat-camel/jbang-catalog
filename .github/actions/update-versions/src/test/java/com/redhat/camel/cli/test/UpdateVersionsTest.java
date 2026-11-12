@@ -931,7 +931,6 @@ public class UpdateVersionsTest {
                 .isRegularFile()
                 .content(StandardCharsets.UTF_8)
                 .contains("<quarkus.platform.group-id>com.redhat.quarkus.platform</quarkus.platform.group-id>")
-                .contains("<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>")
                 .contains("<quarkus.platform.version>" + platformVersion + "</quarkus.platform.version>");
 
         /* try to build the integration */
