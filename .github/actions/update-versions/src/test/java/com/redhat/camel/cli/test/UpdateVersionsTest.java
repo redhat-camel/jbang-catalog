@@ -886,7 +886,8 @@ public class UpdateVersionsTest {
                 .stdout()
                 .captureAll()
                 .log()
-                .hasLinesMatching("\\QCamel JBang version: " + camelVersion + "\\E$")
+                /* "Camel CLI version" is since 4.22, "Camel JBang version" was before */
+                .hasLinesMatching("Camel (CLI|JBang) version\\Q: " + camelVersion + "\\E$")
                 .start()
                 .awaitTermination()
                 .assertSuccess();
